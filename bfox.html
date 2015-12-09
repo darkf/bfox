@@ -1,0 +1,126 @@
+<html>
+<head>
+<style>
+
+body {
+	background-color: gray;
+	color: black;
+	font-family: monospace;
+}
+
+</style>
+<script src="bfox.js"></script>
+<script>
+	var vm = new VM(256);
+
+	function pad(c, n) {
+		var r = "";
+		for(var i = 0; i < n; i++)
+			r += c;
+		return r;
+	}
+
+	function displayCodeTape() {
+		var width = 32;
+		var start = vm.ip - width/2|0;
+		var ipStr = pad(' ', 16) + "^";
+		var indexStr = pad(' ', 16) + vm.ip;
+		var str = vm.code.slice( Math.max(0, start),
+			                     Math.min(vm.code.length, vm.ip + width/2|0)
+							   ) + "\n" + ipStr + "\n" + indexStr;
+		if(start < 0)
+			str = pad(' ', -start) + str;
+		document.getElementById("input-tape").innerText = str;
+	}
+
+	function displayCells() {
+		var width = 16;
+		var charWidth = width * (4+2);
+		var start = vm.dataPtr - width/2|0;
+		var ptrStr = pad(' ', charWidth/2|0 + 2) + "^";
+		var indexStr = pad(' ', charWidth/2|0 + 2) + vm.dataPtr;
+		var arr = vm.tape.slice( Math.max(0, start),
+			                      Math.min(vm.tape.length, vm.dataPtr + width/2|0)
+							    );
+		var nums = "";
+		arr.forEach(function(x) {
+			var s = Math.abs(x).toString(16);
+			var signPad = (x < 0) ? '-' : ' ';
+			nums += signPad + pad('0', 4 - s.length) + s + " ";
+		});
+
+		var str = nums + "\n" + ptrStr + "\n" + indexStr;
+		if(start < 0)
+			str = pad(' ', -start * (4+2)) + str;
+
+		document.getElementById("memory-tape").innerText = str;
+	}
+
+	function display() {
+		displayCodeTape();
+		displayCells();
+		document.getElementById("output").innerText = vm.output;
+	}
+
+	function ui_run() {		
+		if(!vm.step())
+			return;
+
+		display();
+		window.setTimeout(ui_run, 0);
+	}
+
+	function ui_run_fast() {
+		ui_reset();
+
+		vm.run();
+		display();
+	}
+
+	function ui_reset() {
+		var program = document.getElementById("input-program").value;
+
+		vm.reset();
+		vm.setInput(document.getElementById("input").value);
+		vm.load(program);
+		display();
+	}
+
+	function ui_step() {
+		vm.step();
+		display();
+	}
+
+	window.onload = function() {
+		document.body.onkeydown = function(e) {
+			switch(e.keyCode) {
+				case 82: ui_start(); break; // r
+				case 83: ui_step(); break; // s
+			}
+		}
+	}
+</script>
+<body>
+
+<pre id="input-tape">x</pre>
+<pre id="memory-tape">y</pre>
+<pre>keys</pre>
+
+Code:
+<textarea id="input-program">++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.</textarea>
+<br>
+
+Input:
+<textarea id="input"></textarea>
+<br>
+
+Output:
+<pre id="output"></pre>
+
+<button onclick="ui_reset()">Reset</button>
+<button onclick="ui_reset(); ui_run()">Run</button>
+<button onclick="ui_run_fast()">Run Fast</button>
+<button onclick="ui_step()">Step</button>
+
+</body>
+</html>
